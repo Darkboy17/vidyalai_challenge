@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import styled from '@emotion/styled';
 import Post from './Post';
 import Container from '../common/Container';
-import useWindowWidth from '../hooks/useWindowWidth';
+import { useWindowWidth } from '../hooks/useWindowWidth';
 
 const PostListContainer = styled.div(() => ({
   display: 'flex',
@@ -38,37 +38,91 @@ export default function Posts() {
 
   const { isSmallerDevice } = useWindowWidth();
 
+  const [start, setStart] = useState(0); // Track the start index
+  const limit = isSmallerDevice ? 5 : 10; // Adjust limit based on device size
+  const [hasMore, setHasMore] = useState(true);
+
+  const [userData, setUserData] = useState(null);
+
   useEffect(() => {
-    const fetchPost = async () => {
-      const { data: posts } = await axios.get('/api/v1/posts', {
-        params: { start: 0, limit: isSmallerDevice ? 5 : 10 },
-      });
-      setPosts(posts);
-    };
+    fetchPosts(); // Fetch initial posts when component mounts
+    fetchUserData();
+  }, [isSmallerDevice]); // Update posts when device size changes
 
-    fetchPost();
-  }, [isSmallerDevice]);
+  useEffect(() => {
+    // Adjust start index based on new limit when device size changes
+    const adjustedStart = Math.floor(start / limit) * limit;
+    setStart(adjustedStart);
+  }, [limit]); // Recalculate start when limit changes
 
-  const handleClick = () => {
+  const fetchUserData = async () => {
+    try {
+      const { data: users } = await axios.get('/api/v1/users');
+      setUserData(users);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+
+  const fetchPosts = async () => {
     setIsLoading(true);
-
-    setTimeout(() => {
+    try {
+      const { data: posts } = await axios.get('/api/v1/posts', {
+        params: { start: 0, limit },
+      });
+      setPosts(posts); // Update posts state with fetched posts
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
       setIsLoading(false);
-    }, 3000);
+    }
+  };
+
+  // Load more post when a user clicks 'Load More'
+  const handleClick = async () => {
+    setIsLoading(true);
+    try {
+      const nextStart = start + limit;
+
+      // console.log('Requesting posts with start:', nextStart, 'and limit:',limit);
+
+      const { data: newPosts } = await axios.get('/api/v1/posts', {
+        params: { start: nextStart, limit },
+      });
+
+      // In the handleClick function, after fetching new posts:
+      if (newPosts.length < limit) {
+        setHasMore(false);
+      }
+
+      setPosts(prevPosts => [...prevPosts, ...newPosts]); // Append new posts
+      setStart(nextStart); // Update start index for next fetch
+    } catch (error) {
+      console.error('Error loading more posts:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <Container>
       <PostListContainer>
-        {posts.map(post => (
-          <Post post={post} />
+        {posts.map((post, index) => (
+          <Post key={index} post={post} userData={userData} />
         ))}
       </PostListContainer>
 
+      {/*
+      Implemented functionality to load more posts upon clicking the "Load More" button and
+      also to hide the "Load More" button if no posts exist.
+      */}
+
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <LoadMoreButton onClick={handleClick} disabled={isLoading}>
-          {!isLoading ? 'Load More' : 'Loading...'}
-        </LoadMoreButton>
+        {hasMore && (
+          <LoadMoreButton onClick={handleClick} disabled={isLoading}>
+            {isLoading ? 'Loading...' : 'Load More'}
+          </LoadMoreButton>
+        )}
       </div>
     </Container>
   );

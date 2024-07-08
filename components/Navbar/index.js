@@ -5,7 +5,7 @@ const Navbar = styled('nav')(() => ({
   backgroundColor: '#333',
   color: '#fff',
   width: '100%',
-  position: 'absolute',
+  position: 'fixed', // Make the top nav bar sticky during scrolling.
   top: 0,
   left: 0,
   zIndex: 1000,

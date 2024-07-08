@@ -1,9 +1,11 @@
 import React from 'react';
+import { WindowSizeProvider } from '../components/hooks/useWindowWidth';
 
+// Declared the ContextAPI globally. This makes isSmallerDevice available throughout the app.
 const App = ({ Component, pageProps }) => (
-  <React.Fragment>
+  <WindowSizeProvider>
     <Component {...pageProps} />
-  </React.Fragment>
+  </WindowSizeProvider>
 );
 
 export default App;
