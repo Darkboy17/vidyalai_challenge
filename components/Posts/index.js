@@ -49,6 +49,12 @@ export default function Posts() {
     fetchUserData();
   }, [isSmallerDevice]); // Update posts when device size changes
 
+  useEffect(() => {
+    // Adjust start index based on new limit when device size changes
+    const adjustedStart = Math.floor(start / limit) * limit;
+    setStart(adjustedStart);
+  }, [limit]); // Recalculate start when limit changes
+
   const fetchUserData = async () => {
     try {
       const { data: users } = await axios.get('/api/v1/users');
